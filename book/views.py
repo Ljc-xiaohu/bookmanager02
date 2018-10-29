@@ -82,6 +82,10 @@ BookInfo.objects.filter(id=5).update(name='python高级',commentcount=10000)
 # 1
 # >>>
 
+# 得到的是单一对象
+# BookInfo.objects.get(id=6)
+# 得到的是单一对象结果集
+# BookInfo.objects.filter(id=5)
 
 #删除
 #第一种： 先获取对象，调用 delete方法
@@ -316,3 +320,75 @@ from book.models import PeopleInfo
 person = PeopleInfo.objects.get(id=1)
 
 person.book.name
+
+
+########################关联查询的筛选#########################
+
+# 1:n的关系模型中， 根据 人物（n）进行条件查询
+# 我们需要采用的语法形式为：
+# 以filter为例： filter(关联模型类名小写__字段名__运算符=值)
+# 查询图书，要求图书人物为"郭靖"
+
+BookInfo.objects.filter(peopleinfo__name__exact='郭靖')
+BookInfo.objects.filter(peopleinfo__name='郭靖')  #简写
+
+# 查询图书，要求图书中人物的描述包含"八"
+BookInfo.objects.filter(peopleinfo__description__contains='八')
+
+# 根据书籍（1）查询人物（n）
+# 人物中有书籍的外键：
+# 我们就采用： 以filter为例： filter(外键__字段名__运算符=值)
+
+#查询书名为“天龙八部”的所有人物
+PeopleInfo.objects.filter(book__name__exact='天龙八部')
+PeopleInfo.objects.filter(book__name='天龙八部')
+
+# 查询图书阅读量大于30的所有人物
+PeopleInfo.objects.filter(book__readcount__gt=30)
+
+
+#缓存  --》 将硬盘中的数据 保存在 Redis中，当cpu使用的时候优先从 内存中获取
+#       cpu在第一个获取数据的时候，如果内存中，没有，从磁盘中获取， 从磁盘获取之后，会缓存在内存中
+        #以便下次使用
+
+# mysql的数据是保存在      硬盘中         读取慢         空间大
+
+# redis数据保存在        内存中         读取快         空间小
+
+# 用这行代码查询的话，是直接从硬盘中查询的，在数据库的日志记录中可以看到每次都会有查询
+# >>> [book.id for book in BookInfo.objects.all()]
+# [1, 2, 3, 4, 14, 15]
+
+# 用这行代码查询的话，第一次是直接从硬盘中查询的，在日志记录中会显示，之后便会存储到内存中，
+# 之后的每次查询都是从内存中查询的，在日志记录中便不会再显示
+# >>> books = BookInfo.objects.all()
+# >>> [book.id for book in books]
+
+# 例子：
+"""
+>>> [book.id for book in BookInfo.objects.all()]
+[1, 2, 3, 4, 14, 15]
+>>> [book.id for book in BookInfo.objects.all()]
+[1, 2, 3, 4, 14, 15]
+>>> [book.id for book in BookInfo.objects.all()]
+[1, 2, 3, 4, 14, 15]
+
+>>> books = BookInfo.objects.all()
+>>> [book.id for book in books]
+[1, 2, 3, 4, 14, 15]
+>>> [book.id for book in books]
+[1, 2, 3, 4, 14, 15]
+>>> [book.id for book in books]
+[1, 2, 3, 4, 14, 15]
+>>>
+"""
+
+
+# 限制查询结果集
+BookInfo.objects.all()[0:2]
+
+# 默认从第一条开始获取，可以省略 0
+BookInfo.objects.all()[:2]
+
+#一个值，当索引使用
+BookInfo.objects.all()[0]
